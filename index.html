@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atelier 3</title>
+</head>
+<label>Ville</label>
+<input id="city" type="text" value="Quebec">
+<button onclick="submit()">Prévision</button>
+<div id="curve_chart" style="width: 100%; height: 600px; margin:auto"></div>
+</body>
+<script src="jquery/jquery-3.4.1.min.js"></script>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+
+<script>
+    let lastRequestResult = null;
+    $(document).ready(init_UI)
+
+    function submit() {
+        getWeather()
+    }
+
+    function init_UI() {
+        google.charts.load('current', { packages: ['corechart'], language: 'En' });
+        google.charts.setOnLoadCallback(getWeather);
+        $(window).resize(function () {
+            getWeather();
+        });
+    }
+
+    function getWeather() {
+        var city = document.getElementById('city').value;
+
+        var url = "https://api.openweathermap.org/data/2.5/forecast?q=" + city + "&units=metric&appid=b3925aa7a88e8bcddd093fff763a87f6";
+        let min = [];
+        let date = [];
+        let max = [];
+        let temp = [];
+
+
+        $.ajax({
+            url: url,
+            success: (result) => {
+                lastRequestResult = result;
+                addData(date, min, max);
+
+                for (let v = 0; v < min.length; v++) {
+                    temp.push([date[v], min[v], max[v]]);
+                }
+
+                temp.unshift(['Date', 'Min', 'Max']);
+
+                var options_curve = {
+                    title: city + " - prévision 5 jours",
+                    titleTextStyle: { fontSize: '32', color: 'green' },
+                    curveType: 'function',
+                    legend: { position: 'top' }
+                };
+                var data = google.visualization.arrayToDataTable(temp);
+                var chart_curve = new google.visualization.LineChart(document.getElementById('curve_chart'));
+                chart_curve.draw(data, options_curve);
+            }
+        })
+
+    }
+
+    function addData(date, min, max) {
+        if (lastRequestResult != null) {
+            let lastDay = 0;
+            for (let d in lastRequestResult.list) {
+                if (d == 0) {
+                    date.push(lastRequestResult.list[d].dt_txt);
+                    min.push(lastRequestResult.list[d].main.temp_min);
+                    max.push(lastRequestResult.list[d].main.temp_max);
+                    lastDay = new Date(lastRequestResult.list[d].dt_txt).getDate();
+                }
+                let day = new Date(lastRequestResult.list[d].dt_txt).getDate();
+                if (day > lastDay) {
+                    date.push(lastRequestResult.list[d].dt_txt);
+                    min.push(lastRequestResult.list[d].main.temp_min);
+                    max.push(lastRequestResult.list[d].main.temp_max);
+                    lastDay = new Date(lastRequestResult.list[d].dt_txt).getDate();
+                }
+            }
+        }
+    }
+
+</script>
+
+</html>
